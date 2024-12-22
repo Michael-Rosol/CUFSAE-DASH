@@ -242,7 +242,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+	  static uint8_t warning_active = 0;
 
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
@@ -270,16 +270,21 @@ int main(void)
 		 Error_Handler();
 	 }
 
-//	 int num = 5;
-//
-//	 while (num < 500) {
-//		 DisplayTxData(num);
-//		 num++;
-//	 }
+
+	// HAL_GetTick()
+
+
+	 if (TxData[1] > 10){
+		 warning_active = 1;
+	 }
+
+	 if (RxData[1] > 500){
+		 warning_active = 0;
+	 }
 
 
 	 // if the oil temperature or whatever variable is above 500C then led is output
-	 if (RxData[1] > 500 ) {
+	 if (warning_active ) {
 
 		 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 	 }
