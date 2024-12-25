@@ -42,6 +42,9 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
+TIM_HandleTypeDef htim11;
+TIM_HandleTypeDef htim14;
+
 /* USER CODE BEGIN PV */
 CAN_HandleTypeDef hcan1;
 CAN_TxHeaderTypeDef TxHeader;
@@ -51,19 +54,6 @@ uint32_t TxMailbox;
 uint8_t RxData[8];
 uint8_t TxData[8];
 
-/*
- * Okay, I did not realize that both of the boards did
- * not have external crystals. So the best course of action would be to
- * configure the clock of the F446RE as HSI.
- * Then for the H723 I should configure the ST-Link V3 just like your guide
- * and then use Bypass clock source.
- * Configure the GPIO pins if you want 7-segment!
- *
- *
- *
- * UART Baud rate needs to be fixed and terminal set up
- */
-
 
 /* USER CODE END PV */
 
@@ -71,6 +61,8 @@ uint8_t TxData[8];
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
+static void MX_TIM14_Init(void);
+static void MX_TIM11_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -78,6 +70,7 @@ static void MX_CAN1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+// static variables keep scope within various function calls
 
 uint8_t temp1, temp2, temp3, temp4;
 
@@ -123,38 +116,6 @@ void SevenSegment_Update(uint8_t number){
 
 }
 
-//void DisplayTxData(uint32_t value) {
-//    // Break the value into individual digits
-//    uint8_t temp1 = (value / 1000) % 10; // Thousands place
-//    uint8_t temp2 = (value / 100) % 10;  // Hundreds place
-//    uint8_t temp3 = (value / 10) % 10;   // Tens place
-//    uint8_t temp4 = value % 10;          // Units place
-//
-//
-//    if (value < 10){
-//        D4_LOW();  // Activate D1
-//        D3_HIGH();
-//        D2_HIGH();
-//        D1_HIGH();
-//    } else if (value < 100){
-//        D4_LOW();
-//        D3_LOW();  // Activate D2
-//        D2_HIGH();
-//        D1_HIGH();
-//    }
-//    else if (value < 1000){
-//        D4_LOW();
-//         D3_LOW();  // Activate D2
-//         D2_LOW();
-//         D1_HIGH();
-//    }
-//    else{
-//        D4_LOW();
-//         D3_LOW();  // Activate D2
-//         D2_LOW();
-//         D1_LOW();
-//    }
-//
 
 
 
@@ -164,9 +125,6 @@ void DisplayTxData(uint32_t value) {
     uint8_t temp2 = (value / 100) % 10;  // Hundreds place
     uint8_t temp3 = (value / 10) % 10;   // Tens place
     uint8_t temp4 = value % 10;          // Units place
-
-    // Cycle through each digit
-    //for (int i = 0; i < 100; i++) { // 100 iterations to display for ~500ms (adjust as needed)
 
         // Display thousands digit
         SevenSegment_Update(segmentNumber[temp1]);
@@ -199,6 +157,8 @@ void DisplayTxData(uint32_t value) {
 
 
 
+
+
 /* USER CODE END 0 */
 
 /**
@@ -209,7 +169,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
 
 
 
@@ -234,7 +193,12 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_CAN1_Init();
+  MX_TIM14_Init();
+  MX_TIM11_Init();
   /* USER CODE BEGIN 2 */
+
+  // timer is started
+  HAL_TIM_Base_Start_IT(&htim14);
 
   /* USER CODE END 2 */
 
@@ -242,7 +206,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  static uint8_t warning_active = 0;
+	  //static uint8_t warning_active = 0;
 
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
@@ -251,17 +215,15 @@ int main(void)
 	  TxData[0] = 0x23;
       TxData[1] = 0x44;
       TxData[2] = 0x69;
+
+//	  static uint32_t last_toggle_time = 0;
+//	          if (HAL_GetTick() - last_toggle_time >= 5000) { // 5000ms = 5 seconds
+//	        	  TxData[1] = 0x00;
+//	              last_toggle_time = HAL_GetTick(); // Update the last toggle time
+//	          }
 //	  	  // Test code to flash LED
 	  	  //HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 	      //HAL_Delay(300); // Blink every 500 ms
-
-//	  if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, &TxData[0], &TxMailbox[0]) != HAL_OK)
-//	  {
-//	     Error_Handler ();
-//	  }
-//
-//	  HAL_Delay(1000);
-
 
 
 	 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
@@ -271,26 +233,6 @@ int main(void)
 	 }
 
 
-	// HAL_GetTick()
-
-
-	 if (TxData[1] > 10){
-		 warning_active = 1;
-	 }
-
-	 if (RxData[1] > 500){
-		 warning_active = 0;
-	 }
-
-
-	 // if the oil temperature or whatever variable is above 500C then led is output
-	 if (warning_active ) {
-
-		 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
-	 }
-	 else {
-		 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-	 }
 
 
 	 while (TxData[1] >= 0){
@@ -459,6 +401,68 @@ static void MX_CAN1_Init(void)
 }
 
 /**
+  * @brief TIM11 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM11_Init(void)
+{
+
+  /* USER CODE BEGIN TIM11_Init 0 */
+
+  /* USER CODE END TIM11_Init 0 */
+
+  /* USER CODE BEGIN TIM11_Init 1 */
+
+  /* USER CODE END TIM11_Init 1 */
+  htim11.Instance = TIM11;
+  htim11.Init.Prescaler = 9000 - 1;
+  htim11.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim11.Init.Period = 65535 - 1;
+  htim11.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim11.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim11) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM11_Init 2 */
+
+  /* USER CODE END TIM11_Init 2 */
+
+}
+
+/**
+  * @brief TIM14 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM14_Init(void)
+{
+
+  /* USER CODE BEGIN TIM14_Init 0 */
+
+  /* USER CODE END TIM14_Init 0 */
+
+  /* USER CODE BEGIN TIM14_Init 1 */
+
+  /* USER CODE END TIM14_Init 1 */
+  htim14.Instance = TIM14;
+  htim14.Init.Prescaler = 9000 - 1;
+  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim14.Init.Period = 1000 - 1;
+  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM14_Init 2 */
+
+  /* USER CODE END TIM14_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -501,6 +505,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : PA4 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pins : D1_Pin D2_Pin D3_Pin */
   GPIO_InitStruct.Pin = D1_Pin|D2_Pin|D3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -524,6 +536,36 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   }
 
 }
+
+// incorporate a timer so that when the value is registered that
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim14) { // Adjust timer instance
+
+		HAL_TIM_Base_Start(&htim11);
+
+		uint32_t timer_val = __HAL_TIM_GET_COUNTER(&htim11);
+
+			        if (TxData[1] > 5) {
+			            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
+			        }
+
+	        // When the oil temperature is above 5, turn the LED on; otherwise, turn it off
+//	        if (TxData[1] > 5) {
+//	            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
+//	        } else {
+//	            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);  // Turn LED off
+//	        }
+
+			        else if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val > 50000){
+	        	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+	        }
+	}
+
+}
+
+
+
+
 
 
 /* USER CODE END 4 */
