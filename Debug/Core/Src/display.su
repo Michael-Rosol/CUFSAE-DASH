@@ -1,2 +1,2 @@
 ../Core/Src/display.c:20:6:SevenSegment_Update	16	static
-../Core/Src/display.c:32:6:DisplayTxData	24	static
+../Core/Src/display.c:32:6:DisplayRxData	24	static

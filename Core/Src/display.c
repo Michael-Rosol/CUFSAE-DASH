@@ -29,7 +29,7 @@ void SevenSegment_Update(uint8_t number){
 }
 
 
-void DisplayTxData(uint32_t value) {
+void DisplayRxData(uint32_t value) {
     // Extract individual digits
     uint8_t temp1 = (value / 1000) % 10; // Thousands place
     uint8_t temp2 = (value / 100) % 10;  // Hundreds place

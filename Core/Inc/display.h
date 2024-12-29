@@ -19,7 +19,7 @@
 
 
 void SevenSegment_Update(uint8_t number);
-void DisplayTxData(uint32_t value);
+void DisplayRxData(uint32_t value);
 
 
 #endif

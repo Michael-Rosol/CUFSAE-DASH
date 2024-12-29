@@ -1,2 +1,2 @@
 ../Core/Src/display.c:20:6:SevenSegment_Update	1
-../Core/Src/display.c:32:6:DisplayTxData	1
+../Core/Src/display.c:32:6:DisplayRxData	1

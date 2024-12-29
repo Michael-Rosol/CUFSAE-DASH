@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "display.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -140,7 +140,7 @@ int main(void)
 
 	 while (TxData[1] >= 0){
 
-		 	 DisplayTxData(TxData[1]); // change to RxData later
+		 	 DisplayRxData(TxData[1]);
 	 }
 
 
@@ -221,9 +221,9 @@ static void MX_CAN1_Init(void)
   /* USER CODE BEGIN CAN1_Init 0 */
 
 
-	hcan1.Instance = CAN1;
+	  hcan1.Instance = CAN1;
 	  hcan1.Init.Prescaler = 9;
-	  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
+	  hcan1.Init.Mode = CAN_MODE_NORMAL;
 	  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 	  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
 	  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
