@@ -40,7 +40,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan1;
+
 
 TIM_HandleTypeDef htim11;
 TIM_HandleTypeDef htim14;
@@ -48,10 +48,15 @@ TIM_HandleTypeDef htim14;
 /* USER CODE BEGIN PV */
 CAN_HandleTypeDef hcan1;
 CAN_TxHeaderTypeDef TxHeader;
-CAN_RxHeaderTypeDef RxHeader;
+//CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailbox;
-uint8_t RxData[8];
+//uint8_t RxData[8];
 uint8_t TxData[8];
+
+typedef struct {
+	CAN_RxHeaderTypeDef Header;
+	uint8_t Data[8];
+} Rx;
 
 
 /* USER CODE END PV */
@@ -68,6 +73,8 @@ static void MX_TIM11_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+	Rx rx_msg; //global rx variable
+
 
 
 
@@ -81,7 +88,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
 
 
   /* USER CODE END 1 */
@@ -125,9 +131,8 @@ int main(void)
 
 
 	  TxData[0] = 0x23;
-      TxData[1] = 0x44;
+      TxData[1] = 0x49;
       TxData[2] = 0x69;
-
 
 	 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
 		 //uint32_t can_error = HAL_CAN_GetError(&hcan1); // Can potentially use for debugging
@@ -202,7 +207,7 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV4;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
@@ -262,13 +267,27 @@ static void MX_CAN1_Init(void)
 
 
   /* USER CODE END CAN1_Init 1 */
-
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 9;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN CAN1_Init 2 */
 	        TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
-	    	TxHeader.ExtId = 0x01; // may need depending on the size of the bits being sent from ecu
 	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
 	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
-	        TxHeader.DLC = 3;  // Length of data (3 bytes)
+	        TxHeader.DLC = 8;  // Length of data (3 bytes)
 	        TxHeader.TransmitGlobalTime = DISABLE;
 
   /* USER CODE END CAN1_Init 2 */
@@ -324,7 +343,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 9000 - 1;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 1000 - 1;
+  htim14.Init.Period = 10 - 1; // timer is set to keep interrupt checking each 1ms
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
@@ -403,41 +422,43 @@ static void MX_GPIO_Init(void)
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
   /* Get RX message */
-  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-  {
-
-    /* Reception Error */
-    Error_Handler();
-  }
+//  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+//  {
+//
+//    /* Reception Error */
+//    Error_Handler();
+//  }
+	  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_msg.Header, rx_msg.Data) != HAL_OK)
+	  {
+	    Error_Handler();
+	  }
 
 }
 
-// incorporate a timer so that when the value is registered that
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim == &htim14) { // Adjust timer instance
+    static uint32_t timer_val = 0;  // Persistent timer value
+    static uint8_t led_state = 0;  // 0: LED off, 1: LED on
 
-		HAL_TIM_Base_Start(&htim11);
+    if (htim == &htim14) { // Check if this is TIM14 interrupt
+        if (TxData[1] > 5 && led_state == 0) {
+            // Turn the LED on and start the timer
+            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
+            timer_val = __HAL_TIM_GET_COUNTER(&htim11);          // Record start time
+            HAL_TIM_Base_Start(&htim11);                        // Start timer if not already running
+            led_state = 1;                                      // Update state
+        }
 
-		uint32_t timer_val = __HAL_TIM_GET_COUNTER(&htim11);
-
-			        if (TxData[1] > 5) {
-			            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
-			        }
-
-	        // When the oil temperature is above 5, turn the LED on; otherwise, turn it off
-//	        if (TxData[1] > 5) {
-//	            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
-//	        } else {
-//	            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);  // Turn LED off
-//	        }
-
-			        else if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val > 50000){
-	        	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
-	        }
-	}
-
+        if (led_state == 1) {
+            // Check if 6 seconds have elapsed
+            if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val >= 60000) {
+                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // Turn LED off
+                HAL_TIM_Base_Stop(&htim11);                          // Stop timer
+                led_state = 0;                                       // Reset state
+            }
+        }
+    }
 }
-
 
 
 
