@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "display.h"
+#include "CAN.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,23 +41,20 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
+CAN_HandleTypeDef hcan1;
 
 TIM_HandleTypeDef htim11;
 TIM_HandleTypeDef htim14;
 
 /* USER CODE BEGIN PV */
-CAN_HandleTypeDef hcan1;
 CAN_TxHeaderTypeDef TxHeader;
-//CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailbox;
-//uint8_t RxData[8];
 uint8_t TxData[8];
 
-typedef struct {
-	CAN_RxHeaderTypeDef Header;
-	uint8_t Data[8];
-} Rx;
+//typedef struct {
+//	CAN_RxHeaderTypeDef Header;
+//	uint8_t Data[8];
+//} Rx;
 
 
 /* USER CODE END PV */
@@ -73,8 +71,11 @@ static void MX_TIM11_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-	Rx rx_msg; //global rx variable
-
+//	Rx rx_msg; //global rx variable
+//
+//	void CANInterpret(Rx rx_msg) {
+//
+//	}
 
 
 
@@ -139,6 +140,8 @@ int main(void)
 
 		 Error_Handler();
 	 }
+
+
 
 
 
@@ -226,9 +229,10 @@ static void MX_CAN1_Init(void)
   /* USER CODE BEGIN CAN1_Init 0 */
 
 
+  /* USER CODE END CAN1_Init 0 */
 	  hcan1.Instance = CAN1;
 	  hcan1.Init.Prescaler = 9;
-	  hcan1.Init.Mode = CAN_MODE_NORMAL;
+	  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
 	  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
 	  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
 	  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
@@ -238,11 +242,12 @@ static void MX_CAN1_Init(void)
 	  hcan1.Init.AutoRetransmission = DISABLE;
 	  hcan1.Init.ReceiveFifoLocked = DISABLE;
 	  hcan1.Init.TransmitFifoPriority = DISABLE;
+
 	  if (HAL_CAN_Init(&hcan1) != HAL_OK)
 	  {
 	    Error_Handler();
 	  }
-  /* USER CODE END CAN1_Init 0 */
+
 
   /* USER CODE BEGIN CAN1_Init 1 */
 	  CAN_FilterTypeDef  sFilterConfig;
@@ -257,33 +262,19 @@ static void MX_CAN1_Init(void)
 	  sFilterConfig.FilterMaskIdLow = 0x0000;
 	  sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
 	  sFilterConfig.FilterActivation = CAN_FILTER_ENABLE;
-	  sFilterConfig.SlaveStartFilterBank = 14;
-
-	  HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
+	  sFilterConfig.SlaveStartFilterBank = 14; // meaningless in our context
 
 	  HAL_CAN_Start(&hcan1);
 
+	  HAL_CAN_ConfigFilter(&hcan1, &sFilterConfig);
+
+
 	  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-
   /* USER CODE END CAN1_Init 1 */
-  hcan1.Instance = CAN1;
-  hcan1.Init.Prescaler = 9;
-  hcan1.Init.Mode = CAN_MODE_NORMAL;
-  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
-  hcan1.Init.TimeTriggeredMode = DISABLE;
-  hcan1.Init.AutoBusOff = DISABLE;
-  hcan1.Init.AutoWakeUp = DISABLE;
-  hcan1.Init.AutoRetransmission = DISABLE;
-  hcan1.Init.ReceiveFifoLocked = DISABLE;
-  hcan1.Init.TransmitFifoPriority = DISABLE;
-  if (HAL_CAN_Init(&hcan1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+
   /* USER CODE BEGIN CAN1_Init 2 */
+
 	        TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
 	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
 	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
@@ -343,7 +334,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 9000 - 1;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 10 - 1; // timer is set to keep interrupt checking each 1ms
+  htim14.Init.Period = 10 - 1;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
@@ -419,21 +410,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-{
-  /* Get RX message */
-//  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+//{
+////  /* Get RX message */
+//  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_msg.Header, rx_msg.Data) != HAL_OK)
 //  {
 //
 //    /* Reception Error */
 //    Error_Handler();
 //  }
-	  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_msg.Header, rx_msg.Data) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-
-}
+////	  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+////	  {
+////	    Error_Handler();
+////	  }
+//
+//}
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
