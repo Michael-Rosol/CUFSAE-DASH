@@ -2,8 +2,6 @@
 
 
 
-
-
 static uint8_t segmentNumber[10] = {
         0x3f,  // 0
         0x06,  // 1

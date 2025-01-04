@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include "display.h"
 #include "CAN.h"
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,18 +44,16 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_HandleTypeDef hcan1;
 
+TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim11;
 TIM_HandleTypeDef htim14;
+
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
 uint32_t TxMailbox;
 uint8_t TxData[8];
-
-//typedef struct {
-//	CAN_RxHeaderTypeDef Header;
-//	uint8_t Data[8];
-//} Rx;
 
 
 /* USER CODE END PV */
@@ -65,6 +64,8 @@ static void MX_GPIO_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM14_Init(void);
 static void MX_TIM11_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -77,6 +78,22 @@ static void MX_TIM11_Init(void);
 //
 //	}
 
+void ConfigureInterruptPriorities(void){
+
+	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
+	// RX0 is set as the highest priority
+	HAL_NVIC_SetPriority(CAN1_RX0_IRQn, 1, 0);
+	HAL_NVIC_EnableIRQ(CAN1_RX0_IRQn);
+
+	HAL_NVIC_SetPriority(TIM7_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(TIM7_IRQn);
+
+	HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 2, 0);
+	HAL_NVIC_EnableIRQ(TIM8_TRG_COM_TIM14_IRQn);
+
+
+}
 
 
 /* USER CODE END 0 */
@@ -89,6 +106,19 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+
+	uint8_t buf[12];
+
+	/*
+	 * TIM11 Timer: Controls the LED time duration
+	 * TIM14 Interrupt: Controls the LED interrupt          (2)
+	 * TIM7: Controls the Display Interrupt                 (1)
+	 * RX0 Interrupt: Controls the FIFO0 interrupt for CAN (0)
+	 *
+	 *
+	 *
+	 */
+
 
 
   /* USER CODE END 1 */
@@ -114,10 +144,13 @@ int main(void)
   MX_CAN1_Init();
   MX_TIM14_Init();
   MX_TIM11_Init();
+  MX_USART2_UART_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
 
   // timer is started
   HAL_TIM_Base_Start_IT(&htim14);
+  HAL_TIM_Base_Start_IT(&htim7);
 
   /* USER CODE END 2 */
 
@@ -130,30 +163,41 @@ int main(void)
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
 
-
-	  TxData[0] = 0x23;
-      TxData[1] = 0x49;
-      TxData[2] = 0x69;
-
+//	  TxData[0] = 0x23;
+//      TxData[1] = 0x49;
+//      TxData[2] = 0x69;
+//
 	 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
 		 //uint32_t can_error = HAL_CAN_GetError(&hcan1); // Can potentially use for debugging
 
-		 Error_Handler();
+//		 Error_Handler(); // Cause of UART Failure
 	 }
 
 
+//	 char message[] = "Hello, World!\r\n";
+//	     HAL_UART_Transmit(&huart2, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
+	 strcpy((char *)buf, "Hello\r\n");
+	 HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+
+
+
+	 // this currently presents a problem as a infinite loop causing uart to not be updated
+//	 while (TxData[1] >= 0){
+//
+//		 	 DisplayRxData(TxData[1]);
+//	 }
+//
+//	   HAL_Delay(500);
+	 // add UART and change to a timer tommorow
+//	 	 while (TxData[1] >= 0){
+//
+//	 		 	 DisplayRxData(voltage);
+//	 	 }
 
 
 
 
-	 while (TxData[1] >= 0){
 
-		 	 DisplayRxData(TxData[1]);
-	 }
-
-
-
-	   HAL_Delay(500);
 
     /* USER CODE END WHILE */
 
@@ -230,30 +274,12 @@ static void MX_CAN1_Init(void)
 
 
   /* USER CODE END CAN1_Init 0 */
-	  hcan1.Instance = CAN1;
-	  hcan1.Init.Prescaler = 9;
-	  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
-	  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-	  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
-	  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
-	  hcan1.Init.TimeTriggeredMode = DISABLE;
-	  hcan1.Init.AutoBusOff = DISABLE;
-	  hcan1.Init.AutoWakeUp = DISABLE;
-	  hcan1.Init.AutoRetransmission = DISABLE;
-	  hcan1.Init.ReceiveFifoLocked = DISABLE;
-	  hcan1.Init.TransmitFifoPriority = DISABLE;
-
-	  if (HAL_CAN_Init(&hcan1) != HAL_OK)
-	  {
-	    Error_Handler();
-	  }
-
 
   /* USER CODE BEGIN CAN1_Init 1 */
 	  CAN_FilterTypeDef  sFilterConfig;
 
 
-	  sFilterConfig.FilterBank = 1;
+	  sFilterConfig.FilterBank = 10; //change to 1 if CAN stops working
 	  sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
 	  sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
 	  sFilterConfig.FilterIdHigh = 0x0000;
@@ -272,16 +298,69 @@ static void MX_CAN1_Init(void)
 	  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
 
   /* USER CODE END CAN1_Init 1 */
-
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 9;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN CAN1_Init 2 */
 
-	        TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
+	        TxHeader.StdId = 0x446;  // ID 2 (to match H7's filter)
 	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
 	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
 	        TxHeader.DLC = 8;  // Length of data (3 bytes)
 	        TxHeader.TransmitGlobalTime = DISABLE;
 
   /* USER CODE END CAN1_Init 2 */
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 9000 - 1;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 10 - 1;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+
+  /* USER CODE END TIM7_Init 2 */
 
 }
 
@@ -334,7 +413,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 9000 - 1;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 10 - 1;
+  htim14.Init.Period = 20 - 1;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
@@ -344,6 +423,39 @@ static void MX_TIM14_Init(void)
   /* USER CODE BEGIN TIM14_Init 2 */
 
   /* USER CODE END TIM14_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
@@ -410,21 +522,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-//{
-////  /* Get RX message */
-//  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rx_msg.Header, rx_msg.Data) != HAL_OK)
-//  {
-//
-//    /* Reception Error */
-//    Error_Handler();
-//  }
-////	  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-////	  {
-////	    Error_Handler();
-////	  }
-//
-//}
+
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
@@ -448,6 +546,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
                 led_state = 0;                                       // Reset state
             }
         }
+    }
+
+    // set a priority between the interrupts since the time at which they refresh doesn't matter as they will eventually run into each other
+    if (htim == &htim7) {
+//    	DisplayRxData(oil_temp);
+
+       	DisplayRxData(204);
     }
 }
 

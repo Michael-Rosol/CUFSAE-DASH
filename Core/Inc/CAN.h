@@ -12,8 +12,13 @@ typedef struct {
 
 
 extern Rx rx_msg;
+extern uint16_t raw_rpm;
+extern uint8_t raw_voltage;
+extern uint8_t raw_gear;
+extern volatile uint16_t oil_temp;
+extern int voltage;
 
-void CANInterpret(Rx rx_msg);
+void CANInterpret(Rx* rx_msg);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 
 
