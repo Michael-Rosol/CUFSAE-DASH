@@ -1,6 +1,6 @@
 #include "display.h"
 
-
+extern TIM_HandleTypeDef htim11;
 
 static uint8_t segmentNumber[10] = {
         0x3f,  // 0
@@ -26,6 +26,15 @@ void SevenSegment_Update(uint8_t number){
 
 }
 
+void DelayTime(uint16_t time){
+		//uint16_t time_passed = 0;
+
+
+		uint32_t start_time = __HAL_TIM_GET_COUNTER(&htim11);
+
+		while ((__HAL_TIM_GET_COUNTER(&htim11) - start_time) < time);
+
+}
 
 void DisplayRxData(uint32_t value) {
     // Extract individual digits
@@ -37,26 +46,30 @@ void DisplayRxData(uint32_t value) {
         // Display thousands digit
         SevenSegment_Update(segmentNumber[temp1]);
         D1_LOW();  // Activate D1
-        HAL_Delay(7); // Short delay for this digit
+        //HAL_Delay(7); // Short delay for this digit
+        DelayTime(70);
         D1_HIGH(); // Deactivate D1
 
 
         // Display hundreds digit
         SevenSegment_Update(segmentNumber[temp2]);
         D2_LOW();  // Activate D2
-        HAL_Delay(7); // Short delay for this digit
+        //HAL_Delay(7); // Short delay for this digit
+        DelayTime(70);
         D2_HIGH(); // Deactivate D2
 
         // Display tens digit
         SevenSegment_Update(segmentNumber[temp3]);
         D3_LOW();  // Activate D3
-        HAL_Delay(7); // Short delay for this digit
+        //HAL_Delay(7); // Short delay for this digit
+        DelayTime(70);
         D3_HIGH(); // Deactivate D3
 
         // Display units digit
         SevenSegment_Update(segmentNumber[temp4]);
         D4_LOW();  // Activate D4
-        HAL_Delay(7); // Short delay for this digit
+        //HAL_Delay(7); // Short delay for this digit
+        DelayTime(70);
         D4_HIGH(); // Deactivate D4
 
 

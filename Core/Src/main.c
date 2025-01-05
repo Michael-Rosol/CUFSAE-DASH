@@ -24,6 +24,7 @@
 #include "display.h"
 #include "CAN.h"
 #include <string.h>
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -107,7 +108,9 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-	uint8_t buf[12];
+//	uint8_t buf[12];
+	char buf[10];
+	sprintf(buf, "%u", voltage);
 
 	/*
 	 * TIM11 Timer: Controls the LED time duration
@@ -119,7 +122,7 @@ int main(void)
 	 *
 	 */
 
-
+	int numba = 0;
 
   /* USER CODE END 1 */
 
@@ -163,22 +166,30 @@ int main(void)
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
 
-//	  TxData[0] = 0x23;
-//      TxData[1] = 0x49;
-//      TxData[2] = 0x69;
+	  TxData[0] = 0x23;
+      TxData[1] = 0x49;
+      TxData[2] = 0x69;
 //
+      numba++;
+
+	  if (numba > 50){
+		  numba = 0;
+	  }
 	 if (HAL_CAN_AddTxMessage(&hcan1, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
 		 //uint32_t can_error = HAL_CAN_GetError(&hcan1); // Can potentially use for debugging
 
 //		 Error_Handler(); // Cause of UART Failure
 	 }
 
-
+	//        	DisplayRxData(204);
 //	 char message[] = "Hello, World!\r\n";
 //	     HAL_UART_Transmit(&huart2, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
-	 strcpy((char *)buf, "Hello\r\n");
-	 HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+//	 strcpy((char *)buf, "Hello\r\n");
+//	 HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
+	 HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
 
+	 // Optionally, you can add a newline or carriage return at the end
+	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 
 	 // this currently presents a problem as a infinite loop causing uart to not be updated
@@ -186,8 +197,10 @@ int main(void)
 //
 //		 	 DisplayRxData(TxData[1]);
 //	 }
+	 DisplayRxData(numba);
+
 //
-//	   HAL_Delay(500);
+	   HAL_Delay(1);
 	 // add UART and change to a timer tommorow
 //	 	 while (TxData[1] >= 0){
 //
@@ -316,7 +329,7 @@ static void MX_CAN1_Init(void)
   }
   /* USER CODE BEGIN CAN1_Init 2 */
 
-	        TxHeader.StdId = 0x446;  // ID 2 (to match H7's filter)
+	        TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
 	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
 	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
 	        TxHeader.DLC = 8;  // Length of data (3 bytes)
@@ -346,7 +359,7 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 9000 - 1;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 10 - 1;
+  htim7.Init.Period = 1000 - 1;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
   {
@@ -552,7 +565,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim7) {
 //    	DisplayRxData(oil_temp);
 
-       	DisplayRxData(204);
+
     }
 }
 

@@ -5,7 +5,7 @@
 // global variables for passing the argument to main
 Rx rx_msg;
 
-int voltage = 0;
+int voltage = 12;
 uint16_t raw_rpm = 0;
 uint8_t raw_voltage = 0;
 uint8_t raw_gear = 0;
