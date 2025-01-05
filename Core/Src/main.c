@@ -197,7 +197,7 @@ int main(void)
 //
 //		 	 DisplayRxData(TxData[1]);
 //	 }
-	 DisplayRxData(numba);
+	 DisplayRxData(voltage);
 
 //
 	   HAL_Delay(1);
