@@ -108,9 +108,12 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 
-//	uint8_t buf[12];
-	char buf[10];
-	sprintf(buf, "%u", voltage);
+	// UART parameters to display voltage
+	char voltage_buf[20];
+	char oil_buf[20];
+
+	sprintf(oil_buf, "Oil Temp: %u", oil_temp);
+	sprintf(voltage_buf, "Voltage: %u", voltage);
 
 	/*
 	 * TIM11 Timer: Controls the LED time duration
@@ -181,34 +184,27 @@ int main(void)
 //		 Error_Handler(); // Cause of UART Failure
 	 }
 
-	//        	DisplayRxData(204);
-//	 char message[] = "Hello, World!\r\n";
-//	     HAL_UART_Transmit(&huart2, (uint8_t *)message, strlen(message), HAL_MAX_DELAY);
-//	 strcpy((char *)buf, "Hello\r\n");
-//	 HAL_UART_Transmit(&huart2, buf, strlen((char*)buf), HAL_MAX_DELAY);
-	 HAL_UART_Transmit(&huart2, (uint8_t*)buf, strlen(buf), HAL_MAX_DELAY);
 
-	 // Optionally, you can add a newline or carriage return at the end
+	 // ----------------- UART Code: -----------------------------
+
+	 // display the oil_temp through UART
+//	 HAL_UART_Transmit(&huart2, (uint8_t*)oil_buf, strlen(oil_buf), HAL_MAX_DELAY);
+//
+//	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+
+	 // display voltage
+	 HAL_UART_Transmit(&huart2, (uint8_t*)voltage_buf, strlen(voltage_buf), HAL_MAX_DELAY);
+
 	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 
-	 // this currently presents a problem as a infinite loop causing uart to not be updated
-//	 while (TxData[1] >= 0){
+
+
+	 //DisplayRxData(voltage);
+
+	 DisplayRxData(oil_temp);
 //
-//		 	 DisplayRxData(TxData[1]);
-//	 }
-	 DisplayRxData(voltage);
-
-//
-	   HAL_Delay(1);
-	 // add UART and change to a timer tommorow
-//	 	 while (TxData[1] >= 0){
-//
-//	 		 	 DisplayRxData(voltage);
-//	 	 }
-
-
-
+	   HAL_Delay(1); // delay of 1ms
 
 
 
