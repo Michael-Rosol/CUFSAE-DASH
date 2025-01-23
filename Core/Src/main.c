@@ -43,7 +43,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CAN_HandleTypeDef hcan2;
+ CAN_HandleTypeDef hcan1;
+ CAN_HandleTypeDef hcan2;
 
 TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim11;
@@ -53,8 +54,10 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
+//CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailbox;
 uint8_t TxData[8];
+//uint8_t RxData[8];
 
 
 /* USER CODE END PV */
@@ -67,6 +70,7 @@ static void MX_TIM11_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM7_Init(void);
 static void MX_CAN2_Init(void);
+static void MX_CAN1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -108,8 +112,7 @@ int main(void)
 	char voltage_buf[20];
 	char oil_buf[20];
 
-	sprintf(oil_buf, "Oil Temp: %u", oil_temp);
-	sprintf(voltage_buf, "Voltage: %u", voltage);
+
 
 	/*
 	 * TIM11 Timer: Controls the LED time duration
@@ -148,6 +151,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM7_Init();
   MX_CAN2_Init();
+  MX_CAN1_Init();
   /* USER CODE BEGIN 2 */
 
   // timer is started
@@ -168,6 +172,7 @@ int main(void)
 	  TxData[0] = 0x23;
       TxData[1] = 0x49;
       TxData[2] = 0x69;
+      TxData[5] = 0x51;
 //
       numba++;
 
@@ -175,7 +180,7 @@ int main(void)
 		  numba = 0;
 	  }
 	 if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
-		 //uint32_t can_error = HAL_CAN_GetError(&hcan1); // Can potentially use for debugging
+		 //uint32_t can_error = HAL_CAN_GetError(&hcan2); // Can potentially use for debugging
 
 //		 Error_Handler(); // Cause of UART Failure
 	 }
@@ -183,6 +188,9 @@ int main(void)
 
 	 // ----------------- UART Code: -----------------------------
 
+
+	 sprintf(oil_buf, "Oil Temp: %u", oil_temp);
+	 	sprintf(voltage_buf, "Voltage: %u", raw_voltage);
 	 // display the oil_temp through UART
 //	 HAL_UART_Transmit(&huart2, (uint8_t*)oil_buf, strlen(oil_buf), HAL_MAX_DELAY);
 //
@@ -193,12 +201,12 @@ int main(void)
 
 	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
-
-
-
-	 //DisplayRxData(voltage);
-
-	 DisplayRxData(oil_temp);
+//
+//
+//
+	 DisplayRxData(voltage);
+//
+//	 DisplayRxData(oil_temp);
 //
 	   HAL_Delay(1); // delay of 1ms
 
@@ -268,6 +276,63 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief CAN1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CAN1_Init(void)
+{
+
+  /* USER CODE BEGIN CAN1_Init 0 */
+
+  /* USER CODE END CAN1_Init 0 */
+
+  /* USER CODE BEGIN CAN1_Init 1 */
+
+  /* USER CODE END CAN1_Init 1 */
+  hcan1.Instance = CAN1;
+  hcan1.Init.Prescaler = 9;
+  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan1.Init.TimeTriggeredMode = DISABLE;
+  hcan1.Init.AutoBusOff = DISABLE;
+  hcan1.Init.AutoWakeUp = DISABLE;
+  hcan1.Init.AutoRetransmission = DISABLE;
+  hcan1.Init.ReceiveFifoLocked = DISABLE;
+  hcan1.Init.TransmitFifoPriority = DISABLE;
+  if (HAL_CAN_Init(&hcan1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CAN1_Init 2 */
+
+  	  	  	  CAN_FilterTypeDef  canonefilter;
+
+
+    		  canonefilter.FilterBank = 1; //change to 1 if CAN stops working
+    		  canonefilter.FilterMode = CAN_FILTERMODE_IDMASK;
+    		  canonefilter.FilterScale = CAN_FILTERSCALE_32BIT;
+    		  canonefilter.FilterIdHigh = 0x0000;
+    		  canonefilter.FilterIdLow = 0x0000;
+    		  canonefilter.FilterMaskIdHigh = 0x0000;
+    		  canonefilter.FilterMaskIdLow = 0x0000;
+    		  canonefilter.FilterFIFOAssignment = CAN_RX_FIFO0;
+    		  canonefilter.FilterActivation = CAN_FILTER_ENABLE;
+    		  canonefilter.SlaveStartFilterBank = 1; // meaningless in our context
+
+
+    		  	  HAL_CAN_ConfigFilter(&hcan1, &canonefilter);
+    		  	  HAL_CAN_Start(&hcan1);
+
+    		  	  HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING); // potentially not needed
+
+  /* USER CODE END CAN1_Init 2 */
+
+}
+
+/**
   * @brief CAN2 Initialization Function
   * @param None
   * @retval None
@@ -281,31 +346,12 @@ static void MX_CAN2_Init(void)
 
   /* USER CODE BEGIN CAN2_Init 1 */
 
-		CAN_FilterTypeDef  canfilterconfig;
 
-
-		  canfilterconfig.FilterBank = 10; //change to 1 if CAN stops working
-		  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
-		  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
-		  canfilterconfig.FilterIdHigh = 0x0000;
-		  canfilterconfig.FilterIdLow = 0x0000;
-		  canfilterconfig.FilterMaskIdHigh = 0x0000;
-		  canfilterconfig.FilterMaskIdLow = 0x0000;
-		  canfilterconfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-		  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
-		  canfilterconfig.SlaveStartFilterBank = 14; // meaningless in our context
-
-		  	  HAL_CAN_Start(&hcan2);
-
-		  	  HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig);
-
-
-		  	  HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
 
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
   hcan2.Init.Prescaler = 9;
-  hcan2.Init.Mode = CAN_MODE_NORMAL;
+  hcan2.Init.Mode = CAN_MODE_LOOPBACK;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
   hcan2.Init.TimeSeg1 = CAN_BS1_7TQ;
   hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
@@ -321,7 +367,29 @@ static void MX_CAN2_Init(void)
   }
   /* USER CODE BEGIN CAN2_Init 2 */
 
-  	  	    TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
+  CAN_FilterTypeDef  canfilterconfig;
+
+
+  		  canfilterconfig.FilterBank = 1; //change to 1 if CAN stops working
+  		  canfilterconfig.FilterMode = CAN_FILTERMODE_IDMASK;
+  		  canfilterconfig.FilterScale = CAN_FILTERSCALE_32BIT;
+  		  canfilterconfig.FilterIdHigh = 0x0000;
+  		  canfilterconfig.FilterIdLow = 0x0000;
+  		  canfilterconfig.FilterMaskIdHigh = 0x0000;
+  		  canfilterconfig.FilterMaskIdLow = 0x0000;
+  		  canfilterconfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+  		  canfilterconfig.FilterActivation = CAN_FILTER_ENABLE;
+  		  canfilterconfig.SlaveStartFilterBank = 14; // meaningless in our context
+
+
+  		  	  HAL_CAN_ConfigFilter(&hcan2, &canfilterconfig);
+  		  	  HAL_CAN_Start(&hcan2);
+
+  		  	  HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+
+
+  	  	    TxHeader.StdId = 0x660;  // ID 2 (to match H7's filter)
  	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
  	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
  	        TxHeader.DLC = 8;  // Length of data (3 bytes)
@@ -528,6 +596,20 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+
+//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+//{
+//
+//	if (hcan->Instance == CAN2) {
+//  /* Get RX message */
+//  if (HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+//  {
+//
+//    /* Reception Error */
+//    Error_Handler();
+//  	  }
+//	}
+//}
 
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
