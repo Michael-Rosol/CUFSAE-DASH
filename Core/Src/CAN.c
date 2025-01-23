@@ -32,7 +32,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   if (HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &rx_msg.Header, rx_msg.Data) != HAL_OK)
   {
 	  CANInterpret(&rx_msg);
-	  int cheese = 5;
     /* Reception Error */
     Error_Handler();
   	  }
@@ -59,7 +58,7 @@ void CANInterpret(Rx* rx_msg)
 	}
 
 	 if (rx_msg->Header.StdId == 0x0446) {
-		 raw_voltage = 69;
+		 raw_voltage = 60;
 	}
 
 
