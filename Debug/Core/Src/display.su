@@ -1,3 +1,0 @@
-../Core/Src/display.c:18:6:SevenSegment_Update	16	static
-../Core/Src/display.c:29:6:DelayTime	24	static
-../Core/Src/display.c:39:6:DisplayRxData	24	static

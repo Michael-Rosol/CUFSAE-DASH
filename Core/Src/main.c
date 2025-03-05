@@ -21,6 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "lcd.h"
 #include "display.h"
 #include "CAN.h"
 #include <string.h>
@@ -43,8 +44,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
- CAN_HandleTypeDef hcan1;
- CAN_HandleTypeDef hcan2;
+CAN_HandleTypeDef hcan1;
+CAN_HandleTypeDef hcan2;
 
 TIM_HandleTypeDef htim7;
 TIM_HandleTypeDef htim11;
@@ -54,11 +55,13 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
-//CAN_RxHeaderTypeDef RxHeader;
+CAN_RxHeaderTypeDef RxHeader;
 uint32_t TxMailbox;
 uint8_t TxData[8];
-//uint8_t RxData[8];
+uint8_t RxData[8];
 
+volatile int batt_volt = 69;
+volatile int sixtynine = 70;
 
 /* USER CODE END PV */
 
@@ -84,10 +87,10 @@ void ConfigureInterruptPriorities(void){
 	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
 	// RX0 is set as the highest priority
-	HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 1, 0);
+	HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 0, 0);
 	HAL_NVIC_EnableIRQ(CAN2_RX0_IRQn);
 
-	HAL_NVIC_SetPriority(TIM7_IRQn, 0, 0);
+	HAL_NVIC_SetPriority(TIM7_IRQn, 1, 0);
 	HAL_NVIC_EnableIRQ(TIM7_IRQn);
 
 	HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 2, 0);
@@ -95,6 +98,20 @@ void ConfigureInterruptPriorities(void){
 
 
 }
+
+
+void Update_LCD(Lcd_HandleTypeDef *lcd, int batt_volt) {
+    char buffer[100]; // Adjust size as needed
+    sprintf(buffer, "BV: %d", batt_volt);
+
+    __disable_irq();  // Disable the interrupts for thread safety
+    Lcd_clear(lcd);
+    Lcd_string(lcd, buffer);
+    __enable_irq();  // Enable interrupts
+}
+
+
+
 
 
 /* USER CODE END 0 */
@@ -109,8 +126,10 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	// UART parameters to display voltage
-	char voltage_buf[20];
-	char oil_buf[20];
+//	char voltage_buf[20];
+//	char oil_buf[20];
+//	char the_header[50];
+
 
 
 
@@ -124,7 +143,6 @@ int main(void)
 	 *
 	 */
 
-	int numba = 0;
 
   /* USER CODE END 1 */
 
@@ -158,12 +176,63 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim14);
   HAL_TIM_Base_Start_IT(&htim7);
 
+
+
+
+  Lcd_PortType ports[] = {
+		  D4_GPIO_Port, D5_GPIO_Port, D6_GPIO_Port, D7_GPIO_Port
+  };
+
+  Lcd_PinType pins[] = {D4_Pin, D5_Pin, D6_Pin, D7_Pin};
+
+  Lcd_HandleTypeDef lcd = Lcd_create(ports, pins, RS_GPIO_Port, RS_Pin, EN_GPIO_Port, EN_Pin, LCD_4_BIT_MODE);
+
+//  Lcd_clear(&lcd);
+//  Lcd_string(&lcd, "RPM: 420 BV: 12");
+//
+//  Lcd_cursor(&lcd, 1,1);
+//  Lcd_int(&lcd, -500);
+
+  // basic 16x2 test
+  char buffer[16]; // Adjust size as needed
+
+  HAL_Delay(1000);
+  for (int i = 0; i <= 100; i += 2) {
+      sprintf(buffer, "RPM: %d", i); // Convert integer to string
+      Lcd_clear(&lcd); // Clear the LCD if needed
+      Lcd_string(&lcd, buffer); // Display new value
+      HAL_Delay(1000); // Delay to see the change
+  }
+
+
+//  Lcd_cursor(&lcd, 1,1);
+//  Lcd_int(&lcd, -500);
+
+
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+
+
   while (1)
   {
+
+//	  Lcd_clear(&lcd);
+//
+//	    Lcd_cursor(&lcd, 1,1);
+//	    Lcd_int(&lcd, sixtynine);
+
+//	  Lcd_string(&lcd, "RPM: 420 BV: 12");
+
+	 // sprintf(buffer, "BV: %d", batt_volt);  // Convert rpm to string
+	   //       Lcd_clear(&lcd);  // Clear LCD (optional, could be optimized)
+	    //      Lcd_string(&lcd, buffer);  // Display RPM value
+
 	  //static uint8_t warning_active = 0;
 
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
@@ -174,41 +243,39 @@ int main(void)
       TxData[2] = 0x69;
       TxData[5] = 0x51;
 //
-      numba++;
 
-	  if (numba > 50){
-		  numba = 0;
-	  }
-	 if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
-		 //uint32_t can_error = HAL_CAN_GetError(&hcan2); // Can potentially use for debugging
+      // change to an interrupt later
 
-//		 Error_Handler(); // Cause of UART Failure
-	 }
+//	 if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
+//		 //uint32_t can_error = HAL_CAN_GetError(&hcan2); // Can potentially use for debugging
+//
+////		 Error_Handler(); // Cause of UART Failure
+//	 }
 
 
 	 // ----------------- UART Code: -----------------------------
 
 
-	 sprintf(oil_buf, "Oil Temp: %u", oil_temp);
-	 	sprintf(voltage_buf, "Voltage: %u", raw_voltage);
+	 //sprintf(oil_buf, "Oil Temp: %u", oil_temp);
+	// 	sprintf(voltage_buf, "Voltage: %u", raw_voltage);
 	 // display the oil_temp through UART
 //	 HAL_UART_Transmit(&huart2, (uint8_t*)oil_buf, strlen(oil_buf), HAL_MAX_DELAY);
 //
 //	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 	 // display voltage
-	 HAL_UART_Transmit(&huart2, (uint8_t*)voltage_buf, strlen(voltage_buf), HAL_MAX_DELAY);
+	// HAL_UART_Transmit(&huart2, (uint8_t*)voltage_buf, strlen(voltage_buf), HAL_MAX_DELAY);
 
-	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+	// HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
 
 //
 //
 //
-	 DisplayRxData(voltage);
-//
+	// DisplayRxData(251);
+
 //	 DisplayRxData(oil_temp);
 //
-	   HAL_Delay(1); // delay of 1ms
+	   HAL_Delay(150); // delay of 1ms
 
 
 
@@ -292,10 +359,10 @@ static void MX_CAN1_Init(void)
   /* USER CODE END CAN1_Init 1 */
   hcan1.Instance = CAN1;
   hcan1.Init.Prescaler = 9;
-  hcan1.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan1.Init.Mode = CAN_MODE_NORMAL;
   hcan1.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan1.Init.TimeSeg1 = CAN_BS1_7TQ;
-  hcan1.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan1.Init.TimeSeg1 = CAN_BS1_5TQ;
+  hcan1.Init.TimeSeg2 = CAN_BS2_4TQ;
   hcan1.Init.TimeTriggeredMode = DISABLE;
   hcan1.Init.AutoBusOff = DISABLE;
   hcan1.Init.AutoWakeUp = DISABLE;
@@ -351,10 +418,10 @@ static void MX_CAN2_Init(void)
   /* USER CODE END CAN2_Init 1 */
   hcan2.Instance = CAN2;
   hcan2.Init.Prescaler = 9;
-  hcan2.Init.Mode = CAN_MODE_LOOPBACK;
+  hcan2.Init.Mode = CAN_MODE_NORMAL;
   hcan2.Init.SyncJumpWidth = CAN_SJW_1TQ;
-  hcan2.Init.TimeSeg1 = CAN_BS1_7TQ;
-  hcan2.Init.TimeSeg2 = CAN_BS2_2TQ;
+  hcan2.Init.TimeSeg1 = CAN_BS1_5TQ;
+  hcan2.Init.TimeSeg2 = CAN_BS2_4TQ;
   hcan2.Init.TimeTriggeredMode = DISABLE;
   hcan2.Init.AutoBusOff = DISABLE;
   hcan2.Init.AutoWakeUp = DISABLE;
@@ -389,7 +456,7 @@ static void MX_CAN2_Init(void)
 
 
 
-  	  	    TxHeader.StdId = 0x660;  // ID 2 (to match H7's filter)
+  	  	    TxHeader.StdId = 0x0446;  // ID 2 (to match H7's filter)
  	        TxHeader.IDE = CAN_ID_STD;  // Standard ID
  	        TxHeader.RTR = CAN_RTR_DATA;  // Data frame
  	        TxHeader.DLC = 8;  // Length of data (3 bytes)
@@ -551,25 +618,33 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0|GPIO_PIN_1
-                          |D4_Pin|GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_11, GPIO_PIN_RESET);
+                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6
+                          |GPIO_PIN_8|GPIO_PIN_11, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_10, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9
+                          |GPIO_PIN_10, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, D1_Pin|D2_Pin|D3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15
+                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8
+                          |GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PC13 PC14 PC0 PC1
-                           D4_Pin PC6 PC8 PC11 */
+                           PC2 PC3 PC5 PC6
+                           PC8 PC11 */
   GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0|GPIO_PIN_1
-                          |D4_Pin|GPIO_PIN_6|GPIO_PIN_8|GPIO_PIN_11;
+                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6
+                          |GPIO_PIN_8|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA5 PA8 PA10 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_10;
+  /*Configure GPIO pins : PA1 PA5 PA8 PA9
+                           PA10 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9
+                          |GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -583,8 +658,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : D1_Pin D2_Pin D3_Pin */
-  GPIO_InitStruct.Pin = D1_Pin|D2_Pin|D3_Pin;
+  /*Configure GPIO pins : PB10 PB13 PB14 PB15
+                           PB3 PB4 PB5 PB8
+                           PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_10|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15
+                          |GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8
+                          |GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -597,50 +676,84 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 
-//void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
-//{
-//
-//	if (hcan->Instance == CAN2) {
-//  /* Get RX message */
-//  if (HAL_CAN_GetRxMessage(&hcan2, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
-//  {
-//
-//    /* Reception Error */
-//    Error_Handler();
-//  	  }
-//	}
-//}
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
+{
 
+	// changed values hcan->Instance = CAN2 and inside get hcan -> &hcan2
+
+	if (hcan->Instance == CAN2) {
+  /* Get RX message */
+  if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &RxHeader, RxData) != HAL_OK)
+  {
+
+    /* Reception Error */
+    Error_Handler();
+  	  }
+
+
+  //if (RxHeader.StdId == 0x650) {
+
+  	  batt_volt = RxData[5];
+//      //uint32_t voltage = RxData[5];
+	  //	  char uart_buffer[20];
+	   //   unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
+
+	//  int voltage = RxData[5];  // Read voltage value
+	  char uart_buffer[20];
+
+	   //Format as decimal
+	  unsigned int uart_buffer_size = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
+
+
+	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_size, HAL_MAX_DELAY);
+
+
+
+
+ // }
+  //if (RxHeader.StdId == 0x651){
+	    	  //char uart_buffer[20];
+	  	      //unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) RxHeader.StdId);
+
+	  	    //  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_size, HAL_MAX_DELAY);
+  //}
+
+
+	}
+
+}
+
+
+// The function below this is the timer interrupt callback (Code within the specific timers constantly executes)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-    static uint32_t timer_val = 0;  // Persistent timer value
-    static uint8_t led_state = 0;  // 0: LED off, 1: LED on
-
-    if (htim == &htim14) { // Check if this is TIM14 interrupt
-        if (TxData[1] > 5 && led_state == 0) {
-            // Turn the LED on and start the timer
-            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
-            timer_val = __HAL_TIM_GET_COUNTER(&htim11);          // Record start time
-            HAL_TIM_Base_Start(&htim11);                        // Start timer if not already running
-            led_state = 1;                                      // Update state
-        }
-
-        if (led_state == 1) {
-            // Check if 6 seconds have elapsed
-            if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val >= 60000) {
-                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // Turn LED off
-                HAL_TIM_Base_Stop(&htim11);                          // Stop timer
-                led_state = 0;                                       // Reset state
-            }
-        }
-    }
-
-    // set a priority between the interrupts since the time at which they refresh doesn't matter as they will eventually run into each other
-    if (htim == &htim7) {
-//    	DisplayRxData(oil_temp);
-
-
-    }
+//    static uint32_t timer_val = 0;  // Persistent timer value
+//    static uint8_t led_state = 0;  // 0: LED off, 1: LED on
+//
+//    if (htim == &htim14) { // Check if this is TIM14 interrupt
+//        if (TxData[1] > 5 && led_state == 0) {
+//            // Turn the LED on and start the timer
+//            HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);  // Turn LED on
+//            timer_val = __HAL_TIM_GET_COUNTER(&htim11);          // Record start time
+//            led_state = 1;                                      // Update state
+//        }
+//
+//        if (led_state == 1) {
+//            // Check if 6 seconds have elapsed
+//            if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val >= 60000) {
+//                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET); // Turn LED off
+//                HAL_TIM_Base_Stop(&htim11);                          // Stop timer
+//                led_state = 0;                                       // Reset state
+//            }
+//        }
+//    }
+//
+//    // set a priority between the interrupts since the time at which they refresh doesn't matter as they will eventually run into each other
+//    if (htim == &htim7) {
+////    	DisplayRxData(oil_temp);
+//
+//
+//    }
 }
 
 
