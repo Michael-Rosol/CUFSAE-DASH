@@ -1,4 +1,3 @@
-../Core/Src/lcd.c:18:6:DelayTime	2
 ../Core/Src/lcd.c:33:19:Lcd_create	1
 ../Core/Src/lcd.c:59:6:Lcd_init	2
 ../Core/Src/lcd.c:79:6:Lcd_int	1

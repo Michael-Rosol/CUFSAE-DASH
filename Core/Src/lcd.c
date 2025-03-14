@@ -15,15 +15,15 @@ static void lcd_write_command(Lcd_HandleTypeDef * lcd, uint8_t command);
 static void lcd_write(Lcd_HandleTypeDef * lcd, uint8_t data, uint8_t len);
 
 
-void DelayTime(uint16_t time){
-		//uint16_t time_passed = 0;
-
-
-		uint32_t start_time = __HAL_TIM_GET_COUNTER(&htim11);
-
-		while ((__HAL_TIM_GET_COUNTER(&htim11) - start_time) < time);
-
-}
+//void DelayTime(uint16_t time){
+//		//uint16_t time_passed = 0;
+//
+//
+//		uint32_t start_time = __HAL_TIM_GET_COUNTER(&htim11);
+//
+//		while ((__HAL_TIM_GET_COUNTER(&htim11) - start_time) < time);
+//
+//}
 
 /************************************** Function definitions **************************************/
 
