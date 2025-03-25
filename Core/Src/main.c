@@ -65,8 +65,8 @@ Lcd_HandleTypeDef lcd;
 
 char lcdbuffer[32]; // buffer to hold the data we are displaying
 char lcdbuffer2[32];
-volatile int batt_volt = 69;
-volatile int sixtynine = 70;
+int batt_volt;
+volatile int sixty = 70;
 uint8_t rxflag = 0;
 uint32_t volt = 0;
 
@@ -207,7 +207,7 @@ int main(void)
 
  lcd = Lcd_create(ports, pins, RS_GPIO_Port, RS_Pin, EN_GPIO_Port, EN_Pin, LCD_4_BIT_MODE);
  Lcd_clear(&lcd);
-
+batt_volt = 5;
 //  Lcd_string(&lcd, "RPM: 420 BV: 12");
 //
 //  Lcd_cursor(&lcd, 1,1);
@@ -263,46 +263,40 @@ int main(void)
   {
 
 	 if (rxflag){
+//
+////		 	// volt = RxData[5];
+////		 	 	 	 Lcd_clear(&lcd);
+////		 	    	 sprintf(lcdbuffer, "RPM: %d",batt_volt);
+////		 	    	Lcd_string(&lcd, lcdbuffer);
+////		 	  		//Lcd_string(&lcd, lcdbuffer);
+////		 	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
+////		 	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
+////		 	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
+////		 	    	  HAL_TIM_Base_Start(&htim7);
+//
+//		 // SAFE to use batt_volt here (CAN interrupt won't touch it now)
+//		        // sprintf(lcdbuffer, "RPM: %d", batt_volt);
 
-		 	// volt = RxData[5];
-		 	 	 	 Lcd_clear(&lcd);
-		 	    	 sprintf(lcdbuffer, "RPM: %d",batt_volt);
-		 	    	Lcd_string(&lcd, lcdbuffer);
-		 	  		//Lcd_string(&lcd, lcdbuffer);
-		 	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-		 	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-		 	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-		 	    	  HAL_TIM_Base_Start(&htim7);
-
-
-		 	    	  rxflag = 0;
+		        Lcd_clear(&lcd);
+		        sprintf(lcdbuffer, "Volt: %d",batt_volt);
+		    	Lcd_string(&lcd, lcdbuffer);
+		         rxflag = 0;  // Reset flag
+		         HAL_Delay(1);
+//
+//		 	    	//  rxflag = 0;
 	 }
-	 HAL_Delay(100);
 //	 else {
-//	    	 sprintf(lcdbuffer, "No CAN");
-//		  		Lcd_string(&lcd, lcdbuffer);
-//	    	   Lcd_cursor(&lcd, 1,1);
-////	    	   Lcd_int(&lcd, -500   );
-//	    	   sprintf(lcdbuffer2, "RPM: %ld   ",volt);
-//	    	   Lcd_string(&lcd, lcdbuffer2);
-//	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-//	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-//	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-//	    	  HAL_TIM_Base_Start(&htim7);
-//	    	 Lcd_clear(&lcd);
-//	    	 HAL_Delay(10);
+//		 Lcd_clear(&lcd);
+//		   Lcd_string(&lcd, "RPM: 420 BV: 12");
+//
+//		   Lcd_cursor(&lcd, 1,1);
+//
 //	 }
 
-//
-//
-//	    	  	  sprintf(lcdbuffer, "RPM: %d", counter);
-//	  		Lcd_string(&lcd, lcdbuffer);
-//	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-//	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-//	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-//	    	  HAL_TIM_Base_Start(&htim7);
-//	    Lcd_cursor(&lcd, 1,1);
-//	    Lcd_int(&lcd, sixtynine);
+
+
+
+
 
 //	  Lcd_string(&lcd, "RPM: 420 BV: 12");
 
@@ -786,8 +780,8 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   //if (RxHeader.StdId == 0x650) {
 
   	  batt_volt = RxData[5];
+    	rxflag = 1;
 
-  	  rxflag = 1;
       //uint32_t voltage = RxData[5];
 	  	//  char uart_buffer[20];
 	    //  unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
@@ -802,9 +796,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_size, HAL_MAX_DELAY);
 
   	  }
-
-
-
+  	 // snprintf(lcdbuffer, 17, "V:%4u", batt_volt);  // "V:1234" (fits 16x2)
 
 
  // }
