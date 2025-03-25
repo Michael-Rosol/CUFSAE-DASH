@@ -58,6 +58,7 @@ void SysTick_Handler(void);
 void DMA1_Stream2_IRQHandler(void);
 void CAN1_RX0_IRQHandler(void);
 void TIM8_TRG_COM_TIM14_IRQHandler(void);
+void TIM7_IRQHandler(void);
 void CAN2_RX0_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 

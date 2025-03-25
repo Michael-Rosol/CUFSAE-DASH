@@ -64,8 +64,11 @@ uint8_t RxData[8];
 Lcd_HandleTypeDef lcd;
 
 char lcdbuffer[32]; // buffer to hold the data we are displaying
+char lcdbuffer2[32];
 volatile int batt_volt = 69;
 volatile int sixtynine = 70;
+uint8_t rxflag = 0;
+uint32_t volt = 0;
 
 /* USER CODE END PV */
 
@@ -191,7 +194,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   // timer is started
-  HAL_TIM_Base_Start_IT(&htim14);
+  HAL_TIM_Base_Start_IT(&htim14); // starts the timer interrupt
   HAL_TIM_Base_Start_IT(&htim7);
 
 
@@ -203,8 +206,8 @@ int main(void)
   Lcd_PinType pins[] = {D4_Pin, D5_Pin, D6_Pin, D7_Pin};
 
  lcd = Lcd_create(ports, pins, RS_GPIO_Port, RS_Pin, EN_GPIO_Port, EN_Pin, LCD_4_BIT_MODE);
+ Lcd_clear(&lcd);
 
-  Lcd_clear(&lcd);
 //  Lcd_string(&lcd, "RPM: 420 BV: 12");
 //
 //  Lcd_cursor(&lcd, 1,1);
@@ -221,14 +224,15 @@ int main(void)
 //      HAL_Delay(1000); // Delay to see the change
 //  }
 //
-//for (int i = 0; i < 200; i++){
-//	Lcd_clear(&lcd);
+//for (int i = 0; i < 4; i++){
+//	  Lcd_clear(&lcd);
 //  	  sprintf(lcdbuffer, "RPM: %d",i);
 //	Lcd_string(&lcd, lcdbuffer);
 //  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
 //  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
 //__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
 //  HAL_TIM_Base_Start(&htim7);
+//
 //}
 
 
@@ -244,9 +248,6 @@ int main(void)
   	 //HAL_DMA_GET_FLAG(&hdma_tim7_up,)
 
 
-//  Lcd_cursor(&lcd, 1,1);
-//  Lcd_int(&lcd, -500);
-
 
 
 
@@ -261,18 +262,45 @@ int main(void)
   while (1)
   {
 
-	  int counter = 0;
-	  counter++;
+	 if (rxflag){
+
+		 	// volt = RxData[5];
+		 	 	 	 Lcd_clear(&lcd);
+		 	    	 sprintf(lcdbuffer, "RPM: %d",batt_volt);
+		 	    	Lcd_string(&lcd, lcdbuffer);
+		 	  		//Lcd_string(&lcd, lcdbuffer);
+		 	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
+		 	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
+		 	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
+		 	    	  HAL_TIM_Base_Start(&htim7);
 
 
+		 	    	  rxflag = 0;
+	 }
+	 HAL_Delay(100);
+//	 else {
+//	    	 sprintf(lcdbuffer, "No CAN");
+//		  		Lcd_string(&lcd, lcdbuffer);
+//	    	   Lcd_cursor(&lcd, 1,1);
+////	    	   Lcd_int(&lcd, -500   );
+//	    	   sprintf(lcdbuffer2, "RPM: %ld   ",volt);
+//	    	   Lcd_string(&lcd, lcdbuffer2);
+//	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
+//	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
+//	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
+//	    	  HAL_TIM_Base_Start(&htim7);
+//	    	 Lcd_clear(&lcd);
+//	    	 HAL_Delay(10);
+//	 }
 
-	    	  	  sprintf(lcdbuffer, "RPM: %d", batt_volt);
-	  		Lcd_string(&lcd, lcdbuffer);
-	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-	    	  HAL_TIM_Base_Start(&htim7);
-	    	  	   Lcd_clear(&lcd);
+//
+//
+//	    	  	  sprintf(lcdbuffer, "RPM: %d", counter);
+//	  		Lcd_string(&lcd, lcdbuffer);
+//	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
+//	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
+//	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
+//	    	  HAL_TIM_Base_Start(&htim7);
 //	    Lcd_cursor(&lcd, 1,1);
 //	    Lcd_int(&lcd, sixtynine);
 
@@ -290,13 +318,9 @@ int main(void)
 //	  TxData[0] = 0x23;
 //      TxData[1] = 0x49;
 //      TxData[2] = 0x69;
-//      TxData[5] = 0x51;
-
-
 
 //
 
-      // change to an interrupt later
 
 //	 if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
 //		 //uint32_t can_error = HAL_CAN_GetError(&hcan2); // Can potentially use for debugging
@@ -327,9 +351,9 @@ int main(void)
 
 //	 DisplayRxData(oil_temp);
 //
-	 //  HAL_Delay(500); // delay of 1ms
+	//   HAL_Delay(500); // delay of 1ms
 
-
+	 //  Lcd_clear(&lcd);
 
     /* USER CODE END WHILE */
 
@@ -538,13 +562,9 @@ static void MX_TIM7_Init(void)
   htim7.Instance = TIM7;
   htim7.Init.Prescaler = 9000 - 1;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 10000 - 1;
+  htim7.Init.Period = 100 - 1;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_OnePulse_Init(&htim7, TIM_OPMODE_SINGLE) != HAL_OK)
   {
     Error_Handler();
   }
@@ -609,7 +629,7 @@ static void MX_TIM14_Init(void)
   htim14.Instance = TIM14;
   htim14.Init.Prescaler = 9000 - 1;
   htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim14.Init.Period = 20 - 1;
+  htim14.Init.Period = 1000 - 1;
   htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
@@ -666,7 +686,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
 
 }
@@ -766,12 +786,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   //if (RxHeader.StdId == 0x650) {
 
   	  batt_volt = RxData[5];
-//      //uint32_t voltage = RxData[5];
-	  //	  char uart_buffer[20];
-	   //   unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
+
+  	  rxflag = 1;
+      //uint32_t voltage = RxData[5];
+	  	//  char uart_buffer[20];
+	    //  unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
 
   	  if (RxHeader.StdId == 0x623){
-	  int voltage = RxData[5];  // Read voltage value
 	  char uart_buffer[20];
 
 	   //Format as decimal
@@ -810,12 +831,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 //
 ////
 ////
-//    if (htim == &htim14) { // Check if this is TIM14 interrupt
-//
-//    	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-//
-//
-//    }
+    if (htim == &htim14) { // Check if this is TIM14 interrupt
+
+    	//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
+    }
 ////
 ////        if (led_state == 1) {
 ////            // Check if 6 seconds have elapsed
@@ -828,12 +848,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 ////    }
 ////
 ////    // set a priority between the interrupts since the time at which they refresh doesn't matter as they will eventually run into each other
-//    if (htim == &htim7) {
-////    	DisplayRxData(oil_temp);
-//
-//    }
-}
+    if (htim->Instance == TIM7) {
+//    	DisplayRxData(oil_temp);
 
+    	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
+    }
+}
 
 
 
