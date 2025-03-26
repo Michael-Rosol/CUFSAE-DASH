@@ -90,34 +90,6 @@ static void MX_CAN1_Init(void);
 /* USER CODE BEGIN 0 */
 
 
-//void ConfigureInterruptPriorities(void){
-//
-//	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-//
-//	// RX0 is set as the highest priority
-//	HAL_NVIC_SetPriority(CAN2_RX0_IRQn, 0, 0);
-//	HAL_NVIC_EnableIRQ(CAN2_RX0_IRQn);
-//
-//	HAL_NVIC_SetPriority(TIM7_IRQn, 1, 0);
-//	HAL_NVIC_EnabFleIRQ(TIM7_IRQn);
-//
-//	HAL_NVIC_SetPriority(TIM8_TRG_COM_TIM14_IRQn, 2, 0);
-//	HAL_NVIC_EnableIRQ(TIM8_TRG_COM_TIM14_IRQn);
-//
-//
-//}
-
-
-//void Update_LCD(Lcd_HandleTypeDef *lcd, int batt_volt) {
-//    char buffer[100]; // Adjust size as needed
-//    sprintf(buffer, "BV: %d", batt_volt);
-//
-//    __disable_irq();  // Disable the interrupts for thread safety
-//    Lcd_clear(lcd);
-//    Lcd_string(lcd, buffer);
-//    __enable_irq();  // Enable interrupts
-//}
-
 
 void DelayTime(uint16_t time){
 		//uint16_t time_passed = 0;
@@ -128,10 +100,6 @@ void DelayTime(uint16_t time){
 		while ((__HAL_TIM_GET_COUNTER(&htim11) - start_time) < time);
 
 }
-
-
-
-
 
 
 /* USER CODE END 0 */
@@ -151,17 +119,6 @@ int main(void)
 //	char the_header[50];
 
 
-
-
-	/*
-	 * TIM11 Timer: Controls the LED time duration
-	 * TIM14 Interrupt: Controls the LED interrupt          (2)
-	 * TIM7: Controls the Display Interrupt                 (1)
-	 * RX0 Interrupt: Controls the FIFO0 interrupt for CAN (0)
-	 *
-	 *
-	 *
-	 */
 
 
   /* USER CODE END 1 */
@@ -216,40 +173,6 @@ batt_volt = 5;
   // basic 16x2 test
 //  char buffer[16]; // Adjust size as needed
 //
-//  HAL_Delay(1000);
-//  for (int i = 0; i <= 100; i += 2) {
-//      sprintf(buffer, "RPM: %d", i); // Convert integer to string
-//      Lcd_clear(&lcd); // Clear the LCD if needed
-//      Lcd_string(&lcd, buffer); // Display new value
-//      HAL_Delay(1000); // Delay to see the change
-//  }
-//
-//for (int i = 0; i < 4; i++){
-//	  Lcd_clear(&lcd);
-//  	  sprintf(lcdbuffer, "RPM: %d",i);
-//	Lcd_string(&lcd, lcdbuffer);
-//  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-//  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-//__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-//  HAL_TIM_Base_Start(&htim7);
-//
-//}
-
-
-//  	  	  sprintf(lcdbuffer, "RPM: 41");
-//		Lcd_string(&lcd, lcdbuffer);
-//  	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-//  	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-//  	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-//  	  HAL_TIM_Base_Start(&htim7);
-
-  	//Lcd_string(&lcd, "RPM: 420 BV: 12");
-
-  	 //HAL_DMA_GET_FLAG(&hdma_tim7_up,)
-
-
-
-
 
 
   /* USER CODE END 2 */
@@ -263,48 +186,26 @@ batt_volt = 5;
   {
 
 	 if (rxflag){
-//
-////		 	// volt = RxData[5];
-////		 	 	 	 Lcd_clear(&lcd);
-////		 	    	 sprintf(lcdbuffer, "RPM: %d",batt_volt);
-////		 	    	Lcd_string(&lcd, lcdbuffer);
-////		 	  		//Lcd_string(&lcd, lcdbuffer);
-////		 	    	  // transfers 16 bytes of data from the buffer onto ALL of the GPIO Output pins B
-////		 	    	  HAL_DMA_Start(&hdma_tim7_up, (uint32_t)lcdbuffer, (uint32_t)&GPIOB->ODR, 16); // user -> BSRR to toggle specific pins
-////		 	    	__HAL_TIM_ENABLE_DMA(&htim7, TIM_DMA_UPDATE);  // Enable DMA for TIM7 update event
-////		 	    	  HAL_TIM_Base_Start(&htim7);
-//
-//		 // SAFE to use batt_volt here (CAN interrupt won't touch it now)
-//		        // sprintf(lcdbuffer, "RPM: %d", batt_volt);
 
-		        Lcd_clear(&lcd);
-		        sprintf(lcdbuffer, "Volt: %d",batt_volt);
+
+		 if (RxData[5] > 0){
+		        //Lcd_clear(&lcd);
+		        sprintf(lcdbuffer, "Volt: %d",RxData[5]);
 		    	Lcd_string(&lcd, lcdbuffer);
-		         rxflag = 0;  // Reset flag
-		         HAL_Delay(1);
-//
+//		         rxflag = 0;  // Reset flag
+//		         HAL_Delay(1);
+		    	Lcd_clear(&lcd);
 //		 	    	//  rxflag = 0;
+		           unsigned int uart_buffer_expression = sprintf(lcdbuffer2, "%u\r\n", RxData[5]);
+
+
+		         	  HAL_UART_Transmit(&huart2, (uint8_t *)lcdbuffer2, uart_buffer_expression, HAL_MAX_DELAY);
+
+		 }
 	 }
-//	 else {
-//		 Lcd_clear(&lcd);
-//		   Lcd_string(&lcd, "RPM: 420 BV: 12");
-//
-//		   Lcd_cursor(&lcd, 1,1);
-//
-//	 }
 
 
-
-
-
-
-//	  Lcd_string(&lcd, "RPM: 420 BV: 12");
-
-	 // sprintf(buffer, "BV: %d", batt_volt);  // Convert rpm to string
-	   //       Lcd_clear(&lcd);  // Clear LCD (optional, could be optimized)
-	    //      Lcd_string(&lcd, buffer);  // Display RPM value
-
-	  //static uint8_t warning_active = 0;
+DelayTime(100);
 
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
@@ -341,13 +242,10 @@ batt_volt = 5;
 //
 //
 //
-	// DisplayRxData(251);
 
-//	 DisplayRxData(oil_temp);
 //
 	//   HAL_Delay(500); // delay of 1ms
 
-	 //  Lcd_clear(&lcd);
 
     /* USER CODE END WHILE */
 
@@ -777,8 +675,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   	  }
 
 
-  //if (RxHeader.StdId == 0x650) {
-
   	  batt_volt = RxData[5];
     	rxflag = 1;
 
@@ -786,20 +682,18 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	  	//  char uart_buffer[20];
 	    //  unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
 
-  	  if (RxHeader.StdId == 0x623){
+  	//  if (RxHeader.StdId == 0x623){
 	  char uart_buffer[20];
 
 	   //Format as decimal
-	  unsigned int uart_buffer_size = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
+	 // unsigned int uart_buffer_expression = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
+	//  unsigned int uart_buffer_expression = sprintf(lcd_buffer, "Voltage: %u\r\n", batt_volt);
 
 
-	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_size, HAL_MAX_DELAY);
+	//  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_expression, HAL_MAX_DELAY);
 
-  	  }
-  	 // snprintf(lcdbuffer, 17, "V:%4u", batt_volt);  // "V:1234" (fits 16x2)
+ // 	  }
 
-
- // }
   //if (RxHeader.StdId == 0x651){
 	    	  //char uart_buffer[20];
 	  	      //unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) RxHeader.StdId);
@@ -807,7 +701,6 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 	  	    //  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_size, HAL_MAX_DELAY);
   //}
 
-	  // DMA configuration inside our interrupt (Do later)
 
 	}
 
