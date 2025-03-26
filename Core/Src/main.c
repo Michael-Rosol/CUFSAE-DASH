@@ -187,25 +187,31 @@ batt_volt = 5;
 
 	 if (rxflag){
 
+		 		 	    	  rxflag = 0;
 
 		 if (RxData[5] > 0){
+
+			  int voltvalue = RxData[5];
+
 		        //Lcd_clear(&lcd);
-		        sprintf(lcdbuffer, "Volt: %d",RxData[5]);
+		        sprintf(lcdbuffer, "Volt: %d.%d ", voltvalue / 10, voltvalue % 10);
 		    	Lcd_string(&lcd, lcdbuffer);
 //		         rxflag = 0;  // Reset flag
-//		         HAL_Delay(1);
+		        HAL_Delay(100);
 		    	Lcd_clear(&lcd);
-//		 	    	//  rxflag = 0;
-		           unsigned int uart_buffer_expression = sprintf(lcdbuffer2, "%u\r\n", RxData[5]);
 
 
-		         	  HAL_UART_Transmit(&huart2, (uint8_t *)lcdbuffer2, uart_buffer_expression, HAL_MAX_DELAY);
 
 		 }
+//		 unsigned int uart_buffer_expression = sprintf(lcdbuffer2, "%u\r\n", RxData[5]);
+//
+//
+//				         	  HAL_UART_Transmit(&huart2, (uint8_t *)lcdbuffer2, uart_buffer_expression, HAL_MAX_DELAY);
+
+
 	 }
 
 
-DelayTime(100);
 
 //		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
 
@@ -685,12 +691,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   	//  if (RxHeader.StdId == 0x623){
 	  char uart_buffer[20];
 
-	   //Format as decimal
-	 // unsigned int uart_buffer_expression = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
-	//  unsigned int uart_buffer_expression = sprintf(lcd_buffer, "Voltage: %u\r\n", batt_volt);
+	  // HAVING THE UART DEBUG STATEMENTS IN HERE WILL THROW OFF THE DISPLAY CODE
 
-
-	//  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_expression, HAL_MAX_DELAY);
+//	   //Format as decimal
+//	  unsigned int uart_buffer_expression = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
+//	//  unsigned int uart_buffer_expression = sprintf(lcd_buffer, "Voltage: %u\r\n", batt_volt);
+//
+//
+//	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_expression, HAL_MAX_DELAY);
 
  // 	  }
 
