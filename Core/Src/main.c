@@ -836,17 +836,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     	//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 
     }
-////
-////        if (led_state == 1) {
-////            // Check if 6 seconds have elapsed
-//            if (__HAL_TIM_GET_COUNTER(&htim11) - timer_val >= 60000) {
-//                HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET); // Turn LED off
-//               HAL_TIM_Base_Stop(&htim11);                          // Stop timer
-////                led_state = 0;                                       // Reset state
-//            }
-////        }
-////    }
-////
+
 ////    // set a priority between the interrupts since the time at which they refresh doesn't matter as they will eventually run into each other
     if (htim->Instance == TIM7) {
 //    	DisplayRxData(oil_temp);
