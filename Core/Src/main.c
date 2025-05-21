@@ -54,6 +54,7 @@ TIM_HandleTypeDef htim14;
 DMA_HandleTypeDef hdma_tim2_ch1;
 
 UART_HandleTypeDef huart2;
+UART_HandleTypeDef huart6;
 
 /* USER CODE BEGIN PV */
 CAN_TxHeaderTypeDef TxHeader;
@@ -83,6 +84,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_CAN2_Init(void);
 static void MX_CAN1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_USART6_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -137,8 +139,10 @@ int main(void)
   MX_CAN2_Init();
   MX_CAN1_Init();
   MX_TIM2_Init();
+  MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
 //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_10, GPIO_PIN_SET);
 //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_3, GPIO_PIN_SET);
 //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
@@ -181,20 +185,39 @@ batt_volt = 5;
   while (1)
   {
 
+//
+	// int rpm = ((RxData[0] << 8) | RxData[1]);
+	//  int rpm = ((RxData[0] | RxData[1]) << 8) * 6;
+
+	  int rpm = (RxData[1] + (256 * RxData[0]));
+	  int coolant = RxData[2];
+	  int oil = RxData[3];
+	  int bv = RxData[5];
+
 	 if (rxflag){
 
+
+
 		 rxflag = 0;
-		 if (RxHeader.StdId == 0x623){
 
-		 if (RxData[5] > 0){
+		 if (rpm > 0 || coolant > 0 || oil > 0 || bv > 0){
 
-			  int voltvalue = RxData[5];
+			 // int voltvalue = RxData[5];
 
 		        //Lcd_clear(&lcd);
-		        sprintf(lcdbuffer, "BV: %d.%d ", voltvalue / 10, voltvalue % 10);
+			 	Lcd_cursor(&lcd, 0, 0);
+		        sprintf(lcdbuffer, "BV:%2d.%1d RPM:%5d", bv / 10, bv % 10, rpm);
 		    	Lcd_string(&lcd, lcdbuffer);
-		        HAL_Delay(100);
-		    	Lcd_clear(&lcd);
+//		        HAL_Delay(100);
+		    //	Lcd_clear(&lcd);
+
+		    	// condition 2:
+
+		    	Lcd_cursor(&lcd, 1, 0);
+		    	 sprintf(lcdbuffer, "OIL: %2d CT: %2d  ", oil, coolant);
+		    	 Lcd_string(&lcd, lcdbuffer);
+				    //	Lcd_clear(&lcd);
+		    	 HAL_Delay(100);
 
 		 }
 //		 unsigned int uart_buffer_expression = sprintf(lcdbuffer2, "%u\r\n", RxData[5]);
@@ -202,17 +225,53 @@ batt_volt = 5;
 //
 //				         	  HAL_UART_Transmit(&huart2, (uint8_t *)lcdbuffer2, uart_buffer_expression, HAL_MAX_DELAY);
 
-		 }
+	//	 }
 	 }
 
 	 else {
 		// HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10);
-		 sprintf(lcdbuffer, "BV: 0");
-		 		    	Lcd_string(&lcd, lcdbuffer);
-		 		        HAL_Delay(100);
-		 		    	Lcd_clear(&lcd);
+
+//		 sprintf(lcdbuffer, "BV: 0");
+//		 		    	Lcd_string(&lcd, lcdbuffer);
+
+
+
+		 		    		// This is all the UART Code that Goes to the Arduino For Shift Lights
+//		 		    		char arduino_msg[20];  // Create a buffer to hold the converted integer message
+//
+//		 		    	    // Convert the integer value to a string
+//		 		    	    sprintf(arduino_msg, "%d\n", 200);
+//
+//		 		    	    // Transmit the string over UART6
+//		 		    	    HAL_UART_Transmit(&huart6, (uint8_t*)arduino_msg, strlen(arduino_msg), HAL_MAX_DELAY);
+//
+//
+		 Lcd_cursor(&lcd, 0, 0);
+		     Lcd_string(&lcd, "BV: 0.0 RPM:  0 ");
+
+		     Lcd_cursor(&lcd, 1, 0);
+		     Lcd_string(&lcd, "OIL:  0 CT:  0  ");
+
+		 		    	    HAL_Delay(80);
+
+		 		    	  //  Lcd_clear(&lcd);
+
+
 
 	 }
+
+
+		char arduino_msg[20];  // Create a buffer to hold the converted integer message
+
+	    // Convert the integer value to a string
+	 //   sprintf(arduino_msg, "%d\n", RxData[5]);
+		sprintf(arduino_msg, "%d\n", rpm);
+
+	    // Transmit the string over UART6
+	    HAL_UART_Transmit(&huart6, (uint8_t*)arduino_msg, strlen(arduino_msg), HAL_MAX_DELAY);
+
+
+
 
 
 
@@ -222,6 +281,8 @@ batt_volt = 5;
 //	  TxData[0] = 0x23;
 //      TxData[1] = 0x49;
 //      TxData[2] = 0x69;
+//
+
 
 //
 
@@ -241,7 +302,7 @@ batt_volt = 5;
 	 // display the oil_temp through UART
 //	 HAL_UART_Transmit(&huart2, (uint8_t*)oil_buf, strlen(oil_buf), HAL_MAX_DELAY);
 //
-//	 HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
+	// HAL_UART_Transmit(&huart6, (uint8_t*)"Hello8\r\n", strlen("Hello8\r\n"), HAL_MAX_DELAY);
 
 	 // display voltage
 	// HAL_UART_Transmit(&huart2, (uint8_t*)voltage_buf, strlen(voltage_buf), HAL_MAX_DELAY);
@@ -253,7 +314,7 @@ batt_volt = 5;
 //
 
 //
-	//   HAL_Delay(500); // delay of 1ms
+	   HAL_Delay(300); // delay of 1ms // was 500
 
 
     /* USER CODE END WHILE */
@@ -582,6 +643,39 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * @brief USART6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART6_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART6_Init 0 */
+
+  /* USER CODE END USART6_Init 0 */
+
+  /* USER CODE BEGIN USART6_Init 1 */
+
+  /* USER CODE END USART6_Init 1 */
+  huart6.Instance = USART6;
+  huart6.Init.BaudRate = 115200;
+  huart6.Init.WordLength = UART_WORDLENGTH_8B;
+  huart6.Init.StopBits = UART_STOPBITS_1;
+  huart6.Init.Parity = UART_PARITY_NONE;
+  huart6.Init.Mode = UART_MODE_TX_RX;
+  huart6.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart6.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART6_Init 2 */
+
+  /* USER CODE END USART6_Init 2 */
+
+}
+
+/**
   * Enable DMA controller clock
   */
 static void MX_DMA_Init(void)
@@ -616,40 +710,33 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0|GPIO_PIN_1
-                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6
-                          |GPIO_PIN_8|GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
+                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_8
+                          |GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9
-                          |GPIO_PIN_10, GPIO_PIN_RESET);
+                          |GPIO_PIN_10|GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4
-                          |GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
+                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 PC14 PC0 PC2
-                           PC3 PC5 PC6 PC8
+  /*Configure GPIO pins : PC13 PC14 PC0 PC1
+                           PC2 PC3 PC5 PC8
                            PC9 PC11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0|GPIO_PIN_2
-                          |GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_8
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_0|GPIO_PIN_1
+                          |GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_5|GPIO_PIN_8
                           |GPIO_PIN_9|GPIO_PIN_11;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PC1 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PA1 PA5 PA8 PA9
-                           PA10 */
+                           PA10 PA15 */
   GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9
-                          |GPIO_PIN_10;
+                          |GPIO_PIN_10|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -663,12 +750,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB0 PB2 PB10 PB13
-                           PB14 PB15 PB3 PB4
-                           PB5 PB8 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_13
-                          |GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4
-                          |GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9;
+  /*Configure GPIO pins : PB0 PB1 PB2 PB10
+                           PB13 PB14 PB15 PB3
+                           PB4 PB5 PB8 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10
+                          |GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_8|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -696,23 +783,28 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
   	  }
 
 
-  	  batt_volt = RxData[5];
+  	//  batt_volt = RxData[5];
     	rxflag = 1;
 
-      //uint32_t voltage = RxData[5];
-	  	//  char uart_buffer[20];
-	    //  unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
+    //	  int rpm2 = (RxData[1] + (256 * RxData[0]));
 
-  	//  if (RxHeader.StdId == 0x623){
-	//  char uart_buffer[20];
-
-	  // HAVING THE UART DEBUG STATEMENTS IN HERE WILL THROW OFF THE DISPLAY CODE
-
-//	   //Format as decimal
-//	  unsigned int uart_buffer_expression = sprintf(uart_buffer, "Voltage: %u\r\n", batt_volt);
-//	//  unsigned int uart_buffer_expression = sprintf(lcd_buffer, "Voltage: %u\r\n", batt_volt);
+//    	int rpm2 = (RxData[1] + (256 * RxData[0]));
 //
 //
+//      //uint32_t voltage = RxData[5];
+//	  	//  char uart_buffer[20];
+//	    //  unsigned int uart_buffer_size = sprintf(uart_buffer, "StdId: 0x%3X\r\n", (unsigned int) voltage);
+//
+//  	//  if (RxHeader.StdId == 0x623){
+//	  char uart_buffer[20];
+////
+////	  // HAVING THE UART DEBUG STATEMENTS IN HERE WILL THROW OFF THE DISPLAY CODE
+////
+//////	   //Format as decimal
+//	  unsigned int uart_buffer_expression = sprintf(uart_buffer, "Voltage: %d\n%d\r\n", rpm2, RxData[2]);
+////	//  unsigned int uart_buffer_expression = sprintf(lcd_buffer, "Voltage: %u\r\n", batt_volt);
+////
+////
 //	  HAL_UART_Transmit(&huart2, (uint8_t *)uart_buffer, uart_buffer_expression, HAL_MAX_DELAY);
 
  // 	  }

@@ -63,7 +63,9 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define RS_Pin GPIO_PIN_13
 #define RS_GPIO_Port GPIOB
-#define EN_Pin GPIO_PIN_3
+//#define EN_Pin GPIO_PIN_3
+//#define EN_GPIO_Port GPIOB
+#define EN_Pin GPIO_PIN_1
 #define EN_GPIO_Port GPIOB
 #define D4_Pin GPIO_PIN_4
 #define D4_GPIO_Port GPIOB
