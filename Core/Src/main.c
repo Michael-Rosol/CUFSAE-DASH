@@ -162,17 +162,7 @@ HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);
  lcd = Lcd_create(ports, pins, RS_GPIO_Port, RS_Pin, EN_GPIO_Port, EN_Pin, LCD_4_BIT_MODE);
  Lcd_clear(&lcd);
 batt_volt = 5;
-//  Lcd_string(&lcd, "RPM: 420 BV: 12");
-//
-//  Lcd_cursor(&lcd, 1,1);
-//  Lcd_int(&lcd, -500);
 
-  // basic 16x2 test
-//  char buffer[16]; // Adjust size as needed
-//
-
-
-//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_1, GPIO_PIN_SET);
 
 
   /* USER CODE END 2 */
@@ -231,20 +221,7 @@ batt_volt = 5;
 	 else {
 		// HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_10);
 
-//		 sprintf(lcdbuffer, "BV: 0");
-//		 		    	Lcd_string(&lcd, lcdbuffer);
 
-
-
-		 		    		// This is all the UART Code that Goes to the Arduino For Shift Lights
-//		 		    		char arduino_msg[20];  // Create a buffer to hold the converted integer message
-//
-//		 		    	    // Convert the integer value to a string
-//		 		    	    sprintf(arduino_msg, "%d\n", 200);
-//
-//		 		    	    // Transmit the string over UART6
-//		 		    	    HAL_UART_Transmit(&huart6, (uint8_t*)arduino_msg, strlen(arduino_msg), HAL_MAX_DELAY);
-//
 //
 		 Lcd_cursor(&lcd, 0, 0);
 		     Lcd_string(&lcd, "BV: 0.0 RPM:  0 ");
@@ -275,43 +252,6 @@ batt_volt = 5;
 
 
 
-//		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET); // Turn on decimal point
-
-
-//	  TxData[0] = 0x23;
-//      TxData[1] = 0x49;
-//      TxData[2] = 0x69;
-//
-
-
-//
-
-
-//	 if (HAL_CAN_AddTxMessage(&hcan2, &TxHeader, TxData, &TxMailbox) != HAL_OK) {
-//		 //uint32_t can_error = HAL_CAN_GetError(&hcan2); // Can potentially use for debugging
-//
-////		 Error_Handler(); // Cause of UART Failure
-//	 }
-
-
-	 // ----------------- UART Code: -----------------------------
-
-
-	 //sprintf(oil_buf, "Oil Temp: %u", oil_temp);
-	// 	sprintf(voltage_buf, "Voltage: %u", raw_voltage);
-	 // display the oil_temp through UART
-//	 HAL_UART_Transmit(&huart2, (uint8_t*)oil_buf, strlen(oil_buf), HAL_MAX_DELAY);
-//
-	// HAL_UART_Transmit(&huart6, (uint8_t*)"Hello8\r\n", strlen("Hello8\r\n"), HAL_MAX_DELAY);
-
-	 // display voltage
-	// HAL_UART_Transmit(&huart2, (uint8_t*)voltage_buf, strlen(voltage_buf), HAL_MAX_DELAY);
-
-	// HAL_UART_Transmit(&huart2, (uint8_t*)"\r\n", 2, HAL_MAX_DELAY);
-
-//
-//
-//
 
 //
 	   HAL_Delay(300); // delay of 1ms // was 500
